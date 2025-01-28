@@ -1,6 +1,7 @@
 #include <glad/glad.h>
 #include <glfw3.h>
 #include "Shader.h"
+#include "stb_image.h"
 
 #include <iostream>
 
@@ -10,27 +11,6 @@ void ProcessInput(GLFWwindow* window);
 //settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
-
-const char* vertexShaderSource = "#version 330 core\n"
-	"layout (location = 0) in vec3 aPos; \n"
-	"layout (location = 1) in vec3 aColor; //color has attribute position 1 \n "
-
-	"out vec3 ourColor; \n"
-
-	"void main()\n"
-	"{\n"
-	"	gl_Position = vec4(aPos, 1.0); \n"
-	"	ourColor = aColor; \n"	
-	"}\0";
-
-const char* fragmentShaderSource = "#version 330 core\n"
-	"out vec4 FragColor; \n"
-	"in vec3 ourColor; \n"
-	
-	"void main()\n"
-	"{\n"
-	"	FragColor = vec4(ourColor, 1.0); \n"
-	"}\0";
 
 int main()
 {
@@ -79,15 +59,16 @@ int main()
 	// -----------------------------
 	float vertices[] =
 	{
-		 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, // top right
-		-0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // bottom right
-		 0.0f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f// bottom left
-	    //-0.5f,  0.5f, 0.0f, 0.5f, 0.5f, 0.5f // top left
+		// positions // colors // texture coords
+		0.5f, 0.5f, 0.0f,	1.0f, 0.0f, 0.0f,	 1.0f, 1.0f, // top right
+		0.5f,-0.5f, 0.0f,	0.0f, 1.0f, 0.0f,	 1.0f, 0.0f, // bottom right
+	   -0.5f,-0.5f, 0.0f,	0.0f, 0.0f, 1.0f,	 0.0f, 0.0f, // bottom left
+	   -0.5f, 0.5f, 0.0f,	1.0f, 1.0f, 0.0f,	 0.0f, 1.0f // top left
 	};
 	unsigned int indices[] =
 	{
-		0, 1, 2 // first triangle
-		//1, 2, 3  // second triangle
+		0, 1, 3, // first triangle
+		1, 2, 3  // second triangle
 	};
 
 	unsigned int VBO, VAO, EBO;
@@ -106,24 +87,69 @@ int main()
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
 	//position attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
-
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	// color attrib
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
+	// texture coord attrib
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	//unbind VAO
-	glBindVertexArray(0);
+	//texture setup
 	// -----------------------------
+	unsigned int texture1, texture2;
+	
+	//texture 1
+	glGenTextures(1, &texture1);
+	//glActiveTexture(GL_TEXTURE0); //activate texture unit first
+	glBindTexture(GL_TEXTURE_2D, texture1);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+	int width, height, nrChannels;
+	//stbi_set_flip_vertically_on_load(true);
+	unsigned char* data = stbi_load("resources/textures/container.jpg", &width, &height, &nrChannels, 0);
+	if (data)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else
+	{
+		std::cout << "Failed to load texture" << std::endl;
+	}
+	stbi_image_free(data);
 
-	// render loop
+	// texture 2
+	glGenTextures(1, &texture2);
+	//glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, texture2);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	stbi_set_flip_vertically_on_load(true);
+	data = stbi_load("resources/textures/awesomeface.png", &width, &height, &nrChannels, 0);
+	if (data)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else
+	{
+		std::cout << "Failed to load texture" << std::endl;
+	}
+	stbi_image_free(data);
 	// -----------------------------
 
 	//wireframe mode
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	shader.Use();
+	glUniform1i(glGetUniformLocation(shader.ID, "texture1"), 0); 
+	shader.setInt("texture2", 1);
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -134,14 +160,18 @@ int main()
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, texture1);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, texture2);
+
 		shader.Use();
 		//shader.setFloat("someUniform", 1.0f);
-		
-
 		glBindVertexArray(VAO);
-		//glDrawArrays(GL_TRIANGLES, 0, 3);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		glBindVertexArray(0);
+		
+		//glDrawArrays(GL_TRIANGLES, 0, 3);
+
 		// swap the color buffer
 		// double buffer
 		glfwSwapBuffers(window);
